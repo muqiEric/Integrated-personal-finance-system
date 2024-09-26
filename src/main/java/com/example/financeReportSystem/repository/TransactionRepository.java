@@ -9,11 +9,8 @@ import java.time.LocalDate;
 import java.util.List;
 
 public interface TransactionRepository extends JpaRepository<Transaction, Long> {
+
+    // 自定义查询：按日期范围查找交易记录
     @Query("SELECT t FROM Transaction t WHERE t.date BETWEEN :startDate AND :endDate")
-    default List<Transaction> findAllByDateBetween(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate) {
-        return null;
-    }
+    List<Transaction> findAllByDateBetween(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
 }
-
-
-

@@ -61,6 +61,10 @@ public class TransactionService {
         return transactionRepository.findAllByDateBetween(startDate, endDate);
     }
 
+    public void saveAllTransactions(List<Transaction> transactions) {
+        transactionRepository.saveAll(transactions);
+    }
+
 
 
 }

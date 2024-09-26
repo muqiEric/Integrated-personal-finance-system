@@ -48,14 +48,6 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jdbc</artifactId>
         </dependency>
-        <!-- MySQL Driver -->
-        <dependency>
-            <groupId>mysql</groupId>
-            <artifactId>mysql-connector-java</artifactId>
-            <version>8.0.32</version>
-            <scope>runtime</scope>
-
-        </dependency>
         <!-- Apache POI for Excel support -->
         <dependency>
             <groupId>org.apache.poi</groupId>

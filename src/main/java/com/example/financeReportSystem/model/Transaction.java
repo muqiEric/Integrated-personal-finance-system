@@ -1,17 +1,9 @@
 package com.example.financeReportSystem.model;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import javax.persistence.*;
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.Table;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
@@ -19,8 +11,8 @@ import java.time.LocalDate;
 @Table(name = "transactions")
 @Data
 @NoArgsConstructor
-@AllArgsConstructor
 public class Transaction {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -36,4 +28,12 @@ public class Transaction {
 
     @Column(nullable = false)
     private String category;
+
+    // 自定义构造函数，不包括ID字段（因为ID通常是数据库自动生成的）
+    public Transaction(LocalDate date, String description, BigDecimal amount, String category) {
+        this.date = date;
+        this.description = description;
+        this.amount = amount;
+        this.category = category;
+    }
 }
