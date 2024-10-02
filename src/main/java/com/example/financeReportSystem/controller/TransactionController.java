@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
@@ -69,6 +70,12 @@ public class TransactionController {
             @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
         return transactionService.getTransactionsByDateRange(startDate, endDate);
     }
+    // TransactionController.java
+    @GetMapping("/statistics/category")
+    public Map<String, BigDecimal> getStatisticsByCategory() {
+        return transactionService.getStatisticsByCategory();
+    }
+
 
     // 本地文件合并测试接口
     @PostMapping("/merge")
@@ -79,6 +86,9 @@ public class TransactionController {
         try {
             // 解析并合并两个平台的交易数据
             List<Transaction> mergedTransactions = excelReportService.parseAndMergeFiles(wechatFile, alipayFile);
+
+            // 保存到数据库
+            transactionService.saveAllTransactions(mergedTransactions);
 
             // 调用生成Excel报告的方法，使用合并后的列表
             Workbook workbook = excelReportService.generateExcelReport(mergedTransactions);
@@ -93,9 +103,10 @@ public class TransactionController {
             workbook.close();
             outputStream.close();
 
-            return ResponseEntity.ok("文件合并并导出成功！");
+            return ResponseEntity.ok("文件合并并导出成功，且已保存到数据库！");
         } catch (IOException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("文件处理失败：" + e.getMessage());
         }
     }
 }
+

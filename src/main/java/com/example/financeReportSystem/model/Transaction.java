@@ -1,9 +1,6 @@
 package com.example.financeReportSystem.model;
 
 import jakarta.persistence.*;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
@@ -13,7 +10,7 @@ public class Transaction {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private Long id; // 交易的唯一标识符
 
     @Column(nullable = false)
     private LocalDate trans_time; // 交易时间
@@ -47,12 +44,17 @@ public class Transaction {
 
     private String note; // 备注
 
+    // 外键关系：与 Bill 实体建立多对一关系
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "bill_id", nullable = false) // 外键列名称为 "bill_id"
+    private Bill bill; // 关联的账单实体
+
     // 默认构造函数（JPA 需要）
     public Transaction() {}
 
-    // 带参数的构造函数（适用于解析后的数据创建）
+    // 带所有参数的构造函数（用于创建解析后的数据）
     public Transaction(LocalDate trans_time, String trans_type, String trans_party, String goods_name, String direction,
-                       BigDecimal amount, String payment_method, String trans_status, String order_no, String merchant_order_no, String note) {
+                       BigDecimal amount, String payment_method, String trans_status, String order_no, String merchant_order_no, String note, Bill bill) {
         this.trans_time = trans_time;
         this.trans_type = trans_type;
         this.trans_party = trans_party;
@@ -64,9 +66,16 @@ public class Transaction {
         this.order_no = order_no;
         this.merchant_order_no = merchant_order_no;
         this.note = note;
+        this.bill = bill; // 关联的 Bill 实体对象
     }
 
-    // Getter和Setter方法
+    // 带参数的简化构造函数（用于无 bill 关联的场景）
+    public Transaction(LocalDate trans_time, String trans_type, String trans_party, String goods_name, String direction,
+                       BigDecimal amount, String payment_method, String trans_status, String order_no, String merchant_order_no, String note) {
+        this(trans_time, trans_type, trans_party, goods_name, direction, amount, payment_method, trans_status, order_no, merchant_order_no, note, null);
+    }
+
+    // Getter 和 Setter 方法
     public Long getId() {
         return id;
     }
@@ -161,5 +170,13 @@ public class Transaction {
 
     public void setNote(String note) {
         this.note = note;
+    }
+
+    public Bill getBill() {
+        return bill;
+    }
+
+    public void setBill(Bill bill) {
+        this.bill = bill;
     }
 }
