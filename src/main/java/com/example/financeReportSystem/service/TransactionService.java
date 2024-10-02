@@ -47,13 +47,13 @@ public class TransactionService {
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         // 计算按类别统计
-        Map<String, BigDecimal> categoryStats = transactions.stream()
-                .collect(Collectors.groupingBy(Transaction::getCategory,
+        Map<String, BigDecimal> trans_typeStats = transactions.stream()
+                .collect(Collectors.groupingBy(Transaction::getTrans_type,
                         Collectors.reducing(BigDecimal.ZERO, Transaction::getAmount, BigDecimal::add)));
 
         stats.put("totalIncome", totalIncome);
         stats.put("totalExpense", totalExpense);
-        stats.put("categoryStats", categoryStats);
+        stats.put("categoryStats", trans_typeStats);
 
         return stats;
     }

@@ -7,8 +7,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
-import java.io.InputStream;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -20,60 +22,141 @@ public class ExcelReportService {
     @Autowired
     private TransactionService transactionService;
 
-    // 生成Excel报告（已存在的方法）
+    // 解析微信CSV文件
+    public List<Transaction> parseWechatCsv(MultipartFile file) throws IOException {
+        List<Transaction> transactions = new ArrayList<>();
+
+        try (BufferedReader br = new BufferedReader(new FileReader(convertMultipartFileToFile(file)))) {
+            String line;
+
+            // 跳过前12行（标题行）
+            for (int i = 0; i < 17; i++) {
+                br.readLine();
+            }
+
+            // 解析交易记录
+            while ((line = br.readLine()) != null) {
+                String[] values = line.split(","); // 按逗号分隔
+                if (values.length >= 11) { // 检查字段数
+                    LocalDate trans_time = LocalDate.parse(values[0]); // 交易时间
+                    String trans_type = values[1]; // 交易类型
+                    String trans_party = values[2]; // 交易对方
+                    String goods_name = values[3]; // 商品名称
+                    String direction = values[4]; // 收/支
+                    BigDecimal amount = new BigDecimal(values[5].replace("¥", "").trim()); // 金额
+                    String payment_method = values[6]; // 支付方式
+                    String trans_status = values[7]; // 当前状态
+                    String order_no = values[8]; // 交易单号
+                    String merchant_order_no = values[9]; // 商户单号
+                    String note = values[10]; // 备注
+
+                    // 创建Transaction对象
+                    Transaction transaction = new Transaction(trans_time, trans_type, trans_party, goods_name, direction, amount, payment_method, trans_status, order_no, merchant_order_no, note);
+                    transactions.add(transaction);
+                }
+            }
+        }
+
+        return transactions; // 返回解析后的交易记录
+    }
+
+    // 解析支付宝CSV文件
+    public List<Transaction> parseAlipayCsv(MultipartFile file) throws IOException {
+        List<Transaction> transactions = new ArrayList<>();
+
+        try (BufferedReader br = new BufferedReader(new FileReader(convertMultipartFileToFile(file)))) {
+            String line;
+
+            // 跳过前25行（标题行）
+            for (int i = 0; i < 25; i++) {
+                br.readLine();
+            }
+
+            // 解析交易记录
+            while ((line = br.readLine()) != null) {
+                String[] values = line.split(","); // 按逗号分隔
+                if (values.length >= 11) { // 检查字段数
+                    LocalDate trans_time = LocalDate.parse(values[0]); // 交易时间
+                    String trans_type = values[1]; // 交易类型
+                    String trans_party = values[2]; // 交易对方
+                    String goods_name = values[4]; // 商品名称
+                    String direction = values[5]; // 收/支
+                    BigDecimal amount = new BigDecimal(values[6]); // 金额
+                    String payment_method = values[7]; // 支付方式
+                    String trans_status = values[8]; // 当前状态
+                    String order_no = values[9]; // 交易单号
+                    String merchant_order_no = values[10]; // 商户单号
+                    String note = values[11]; // 备注
+
+                    // 创建Transaction对象
+                    Transaction transaction = new Transaction(trans_time, trans_type, trans_party, goods_name, direction, amount, payment_method, trans_status, order_no, merchant_order_no, note);
+                    transactions.add(transaction);
+                }
+            }
+        }
+
+        return transactions; // 返回解析后的交易记录
+    }
+
+    // 将 MultipartFile 转换为 File
+    private File convertMultipartFileToFile(MultipartFile file) throws IOException {
+        File tempFile = File.createTempFile("temp", file.getOriginalFilename());
+        file.transferTo(tempFile);
+        return tempFile;
+    }
+
+    // 生成合并后的Excel报告
     public Workbook generateExcelReport(List<Transaction> transactions) {
         Workbook workbook = new XSSFWorkbook();
         Sheet sheet = workbook.createSheet("Financial Report");
 
         // 设置标题行
         Row headerRow = sheet.createRow(0);
-        headerRow.createCell(0).setCellValue("Date");
-        headerRow.createCell(1).setCellValue("Description");
-        headerRow.createCell(2).setCellValue("Amount");
-        headerRow.createCell(3).setCellValue("Category");
+        headerRow.createCell(0).setCellValue("Transaction Time");
+        headerRow.createCell(1).setCellValue("Transaction Type");
+        headerRow.createCell(2).setCellValue("Transaction Party");
+        headerRow.createCell(3).setCellValue("Goods Name");
+        headerRow.createCell(4).setCellValue("Direction");
+        headerRow.createCell(5).setCellValue("Amount");
+        headerRow.createCell(6).setCellValue("Payment Method");
+        headerRow.createCell(7).setCellValue("Transaction Status");
+        headerRow.createCell(8).setCellValue("Order No");
+        headerRow.createCell(9).setCellValue("Merchant Order No");
+        headerRow.createCell(10).setCellValue("Note");
 
         // 填充交易数据
         int rowNum = 1;
         for (Transaction transaction : transactions) {
             Row row = sheet.createRow(rowNum++);
-            row.createCell(0).setCellValue(transaction.getDate().toString());
-            row.createCell(1).setCellValue(transaction.getDescription());
-            row.createCell(2).setCellValue(transaction.getAmount().toString());
-            row.createCell(3).setCellValue(transaction.getCategory());
+            row.createCell(0).setCellValue(transaction.getTrans_time().toString());
+            row.createCell(1).setCellValue(transaction.getTrans_type());
+            row.createCell(2).setCellValue(transaction.getTrans_party());
+            row.createCell(3).setCellValue(transaction.getGoods_name());
+            row.createCell(4).setCellValue(transaction.getDirection());
+            row.createCell(5).setCellValue(transaction.getAmount().toString());
+            row.createCell(6).setCellValue(transaction.getPayment_method());
+            row.createCell(7).setCellValue(transaction.getTrans_status());
+            row.createCell(8).setCellValue(transaction.getOrder_no());
+            row.createCell(9).setCellValue(transaction.getMerchant_order_no());
+            row.createCell(10).setCellValue(transaction.getNote());
         }
 
         return workbook;
     }
 
-    // 新增：解析上传的Excel文件
-    //从上传的 Excel 文件中读取数据,并将其转换为 Transaction 对象的列表。
-    // 然后,通过调用 TransactionService 的 saveAllTransactions 方法将解析后的交易数据保存到数据库中。
-    public void parseExcelFile(MultipartFile file) throws IOException {
-        List<Transaction> transactions = new ArrayList<>();
+    // 合并解析两个上传的文件（微信和支付宝）
+    public List<Transaction> parseAndMergeFiles(MultipartFile wechatFile, MultipartFile alipayFile) throws IOException {
+        List<Transaction> mergedTransactions = new ArrayList<>();
 
-        try (InputStream inputStream = file.getInputStream()) {
-            Workbook workbook = new XSSFWorkbook(inputStream);
-            Sheet sheet = workbook.getSheetAt(0);
+        // 解析微信文件
+        List<Transaction> wechatTransactions = parseWechatCsv(wechatFile); // 使用新的CSV解析逻辑
+        mergedTransactions.addAll(wechatTransactions);
 
-            // 从第二行开始读取数据（假设第一行为表头）
-            for (int i = 1; i <= sheet.getLastRowNum(); i++) {
-                Row row = sheet.getRow(i);
-                if (row != null) {
-                    // 读取每一行数据
-                    LocalDate date = LocalDate.parse(row.getCell(0).getStringCellValue()); // 假设第0列是日期
-                    String description = row.getCell(1).getStringCellValue(); // 第1列是描述
-                    BigDecimal amount = new BigDecimal(row.getCell(2).getNumericCellValue()); // 第2列是金额
-                    String category = row.getCell(3).getStringCellValue(); // 第3列是类别
+        // 解析支付宝文件
+        List<Transaction> alipayTransactions = parseAlipayCsv(alipayFile); // 使用新的CSV解析逻辑
+        mergedTransactions.addAll(alipayTransactions);
 
-                    // 创建Transaction对象
-                    // 传递顺序：description, amount, date, category
-                    Transaction transaction = new Transaction(date, description, amount, category);
-                    transactions.add(transaction);
-                }
-            }
-        }
-
-        // 保存到数据库
-        transactionService.saveAllTransactions(transactions);
+        // 返回合并后的交易列表
+        return mergedTransactions;
     }
 }

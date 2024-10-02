@@ -46,7 +46,7 @@ public class TransactionController {
         return transactionService.getStatistics();
     }
 
-    // 导出交易记录到Excel文件
+    // 导出所有交易记录为Excel
     @GetMapping("/export")
     public void exportToExcel(HttpServletResponse response) throws IOException {
         response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
@@ -70,20 +70,31 @@ public class TransactionController {
         return transactionService.getTransactionsByDateRange(startDate, endDate);
     }
 
-    // 上传Excel文件并解析保存
-    //用于处理文件上传。该方法接收一个 MultipartFile 类型的参数,并将其传递给 ExcelReportService 的 parseExcelFile 方法进行解析。
-    @PostMapping("/upload")
-    public ResponseEntity<String> uploadFile(@RequestParam("file") MultipartFile file) {
-        if (file.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("请上传文件！");
-        }
-
+    // 本地文件合并测试接口
+    @PostMapping("/merge")
+    public ResponseEntity<String> mergeTransactionFiles(
+            @RequestParam("wechatFile") MultipartFile wechatFile,
+            @RequestParam("alipayFile") MultipartFile alipayFile,
+            HttpServletResponse response) {
         try {
-            excelReportService.parseExcelFile(file);
-            return ResponseEntity.ok("文件上传并解析成功！");
+            // 解析并合并两个平台的交易数据
+            List<Transaction> mergedTransactions = excelReportService.parseAndMergeFiles(wechatFile, alipayFile);
+
+            // 调用生成Excel报告的方法，使用合并后的列表
+            Workbook workbook = excelReportService.generateExcelReport(mergedTransactions);
+
+            // 设置响应头，告诉浏览器下载文件
+            response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+            response.setHeader("Content-Disposition", "attachment; filename=merged_transactions.xlsx");
+
+            // 将合并后的Excel文件写入响应流，供下载
+            ServletOutputStream outputStream = response.getOutputStream();
+            workbook.write(outputStream);
+            workbook.close();
+            outputStream.close();
+
+            return ResponseEntity.ok("文件合并并导出成功！");
         } catch (IOException e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("文件处理失败：无法读取文件。");
-        } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("文件处理失败：" + e.getMessage());
         }
     }
