@@ -47,12 +47,12 @@ public class TransactionService {
         Bill bill = billRepository.findByBillSourceAndStartDateAndEndDate(billSource, startDate, endDate);
         if (bill == null) {
             bill = new Bill();
-            bill.setBillSource(billSource);
-            bill.setStartDate(startDate);
-            bill.setEndDate(endDate);
+            bill.setBill_source(billSource); // 使用 bill_source
+            bill.setStart_date(startDate); // 使用 start_date
+            bill.setEnd_date(endDate); // 使用 end_date
         }
-        bill.setIncomeAmount(totalIncome);
-        bill.setExpenseAmount(totalExpense);
+        bill.setIncome_amount(totalIncome); // 使用 income_amount
+        bill.setExpense_amount(totalExpense); // 使用 expense_amount
 
         // 保存账单记录
         billRepository.save(bill);
