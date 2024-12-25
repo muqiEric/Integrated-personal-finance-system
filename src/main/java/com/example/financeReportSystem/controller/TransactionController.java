@@ -1,7 +1,9 @@
 package com.example.financeReportSystem.controller;
 
+import com.example.financeReportSystem.model.BudgetCategory;
 import com.example.financeReportSystem.model.Transaction;
 import com.example.financeReportSystem.service.ExcelReportService;
+import com.example.financeReportSystem.service.StatisticsService;
 import com.example.financeReportSystem.service.TransactionService;
 import jakarta.servlet.ServletOutputStream;
 import jakarta.servlet.http.HttpServletResponse;
@@ -27,81 +29,140 @@ public class TransactionController {
     private TransactionService transactionService;
 
     @Autowired
+    private StatisticsService statisticsService;
+
+    @Autowired
     private ExcelReportService excelReportService;
 
-    // 获取所有交易记录
+    // 获取所有交易记录（支持分页和排序）
     @GetMapping
-    public List<Transaction> getAllTransactions() {
-        return transactionService.getAllTransactions();
+    public ResponseEntity<List<Transaction>> getAllTransactions() {
+        try {
+            List<Transaction> transactions = transactionService.getAllTransactions();
+            return ResponseEntity.ok(transactions);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
+    }
+
+    // 获取交易记录按日期范围筛选（支持分页）
+    @GetMapping("/range")
+    public ResponseEntity<List<Transaction>> getTransactionsByDateRange(
+            @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        try {
+            List<Transaction> transactions = transactionService.getTransactionsByDateRange(startDate, endDate);
+            return ResponseEntity.ok(transactions);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
+    }
+
+    // 获取交易记录按备注和日期范围筛选（支持分页）
+    @GetMapping("/note-range")
+    public ResponseEntity<List<Transaction>> getTransactionsByNoteAndDateRange(
+            @RequestParam("note") String note,
+            @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        try {
+            List<Transaction> transactions = transactionService.getTransactionsByNoteAndDateRange(note, startDate, endDate);
+            return ResponseEntity.ok(transactions);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
+    }
+
+    // 按类别分组统计收支总额
+    @GetMapping("/statistics/category")
+    public ResponseEntity<List<Map<String, Object>>> getTotalAmountByCategory() {
+        try {
+            List<Map<String, Object>> statistics = transactionService.getTotalAmountByCategory();
+            return ResponseEntity.ok(statistics);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
+    }
+
+    // 按月份和类别统计收支总额
+    @GetMapping("/statistics/month-category")
+    public ResponseEntity<List<Map<String, Object>>> getTotalAmountGroupedByMonthAndCategory() {
+        try {
+            List<Map<String, Object>> statistics = transactionService.getTotalAmountGroupedByMonthAndCategory();
+            return ResponseEntity.ok(statistics);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
     }
 
     // 添加单个交易记录
     @PostMapping
-    public Transaction addTransaction(@RequestBody Transaction transaction) {
-        return transactionService.saveTransaction(transaction);
+    public ResponseEntity<Transaction> addTransaction(@RequestBody Transaction transaction) {
+        try {
+            Transaction savedTransaction = transactionService.addTransaction(transaction);
+            return ResponseEntity.status(HttpStatus.CREATED).body(savedTransaction);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
     }
 
-    // 获取统计信息
-    @GetMapping("/statistics")
-    public Map<String, Object> getStatistics() {
-        return transactionService.getStatistics();
+    // 更新单个交易记录
+    @PutMapping("/{id}")
+    public ResponseEntity<Transaction> updateTransaction(
+            @PathVariable Long id, @RequestBody Transaction updatedTransaction) {
+        try {
+            Transaction updated = transactionService.updateTransaction(id, updatedTransaction);
+            return ResponseEntity.ok(updated);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
     }
 
-    // 导出所有交易记录为Excel
+    // 批量删除交易记录
+    @DeleteMapping
+    public ResponseEntity<String> deleteTransactions(@RequestBody List<Long> ids) {
+        try {
+            transactionService.deleteTransactions(ids);
+            return ResponseEntity.ok("交易记录已删除");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("删除失败：" + e.getMessage());
+        }
+    }
+
+    // 导出交易记录为 Excel
     @GetMapping("/export")
-    public void exportToExcel(HttpServletResponse response) throws IOException {
-        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-        response.setHeader("Content-Disposition", "attachment; filename=financial_report.xlsx");
+    public void exportToExcel(HttpServletResponse response) {
+        try {
+            response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+            response.setHeader("Content-Disposition", "attachment; filename=financial_report.xlsx");
 
-        List<Transaction> transactions = transactionService.getAllTransactions();
-        Workbook workbook = excelReportService.generateExcelReport(transactions);
+            List<Transaction> transactions = transactionService.getAllTransactions();
+            Workbook workbook = excelReportService.generateExcelReport(transactions);
 
-        // 将Excel文件写入响应输出流
-        ServletOutputStream outputStream = response.getOutputStream();
-        workbook.write(outputStream);
-        workbook.close();
-        outputStream.close();
+            try (ServletOutputStream outputStream = response.getOutputStream()) {
+                workbook.write(outputStream);
+            }
+        } catch (IOException e) {
+            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        }
     }
 
-    // 按日期范围获取交易记录
-    @GetMapping("/range")
-    public List<Transaction> getTransactionsByDateRange(
-            @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
-        return transactionService.getTransactionsByDateRange(startDate, endDate);
-    }
-    // TransactionController.java
-    @GetMapping("/statistics/category")
-    public Map<String, BigDecimal> getStatisticsByCategory() {
-        return transactionService.getStatisticsByCategory();
-    }
-
-
-    // 本地文件合并测试接口
+    // 合并交易文件并生成 Excel
     @PostMapping("/merge")
     public ResponseEntity<String> mergeTransactionFiles(
             @RequestParam("wechatFile") MultipartFile wechatFile,
             @RequestParam("alipayFile") MultipartFile alipayFile,
             HttpServletResponse response) {
         try {
-            // 解析并合并两个平台的交易数据
             List<Transaction> mergedTransactions = excelReportService.parseAndMergeFiles(wechatFile, alipayFile);
-
-            // 保存到数据库
             transactionService.saveAllTransactions(mergedTransactions);
 
-            // 调用生成Excel报告的方法，使用合并后的列表
             Workbook workbook = excelReportService.generateExcelReport(mergedTransactions);
-
-            // 设置响应头，告诉浏览器下载文件
             response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
             response.setHeader("Content-Disposition", "attachment; filename=merged_transactions.xlsx");
 
-            // 将合并后的Excel文件写入响应流，供下载
-            ServletOutputStream outputStream = response.getOutputStream();
-            workbook.write(outputStream);
-            workbook.close();
-            outputStream.close();
+            try (ServletOutputStream outputStream = response.getOutputStream()) {
+                workbook.write(outputStream);
+            }
 
             return ResponseEntity.ok("文件合并并导出成功，且已保存到数据库！");
         } catch (IOException e) {
@@ -109,4 +170,3 @@ public class TransactionController {
         }
     }
 }
-
