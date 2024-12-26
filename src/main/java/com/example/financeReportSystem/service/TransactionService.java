@@ -5,9 +5,11 @@ import com.example.financeReportSystem.repository.TransactionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class TransactionService {
@@ -18,6 +20,34 @@ public class TransactionService {
     // 获取所有交易记录
     public List<Transaction> getAllTransactions() {
         return transactionRepository.findAll();
+    }
+
+    // 获取支出分类统计（按商品名称分组统计支出金额）
+    public Map<String, Double> getExpenseStatistics() {
+        // 获取所有交易记录并筛选出支出
+        List<Transaction> expenseTransactions = transactionRepository.findAll().stream()
+                .filter(transaction -> "支出".equals(transaction.getDirection()))
+                .collect(Collectors.toList());
+
+        // 根据商品名称分组统计支出金额
+        return expenseTransactions.stream().collect(Collectors.groupingBy(
+                Transaction::getGoods_name,
+                Collectors.summingDouble(transaction -> transaction.getAmount().abs().doubleValue()) // 支出金额为正数
+        ));
+    }
+
+    // 获取收入分类统计（按商品名称分组统计收入金额）
+    public Map<String, Double> getIncomeStatistics() {
+        // 获取所有交易记录并筛选出收入
+        List<Transaction> incomeTransactions = transactionRepository.findAll().stream()
+                .filter(transaction -> "收入".equals(transaction.getDirection()))
+                .collect(Collectors.toList());
+
+        // 根据商品名称分组统计收入金额
+        return incomeTransactions.stream().collect(Collectors.groupingBy(
+                Transaction::getGoods_name,
+                Collectors.summingDouble(transaction -> transaction.getAmount().doubleValue())
+        ));
     }
 
     // 根据日期范围筛选交易记录
@@ -42,7 +72,7 @@ public class TransactionService {
 
     // 批量删除交易记录
     public void deleteTransactions(List<Long> ids) {
-        transactionRepository.deleteAllByIds(ids);
+        transactionRepository.deleteAllByIdIn(ids);
     }
 
     // 新增交易记录
