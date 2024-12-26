@@ -20,7 +20,7 @@ public interface FamilyMemberRepository extends JpaRepository<FamilyMember, Long
 
     @Query(value = "INSERT INTO user_family_mapping (user_id, member_id) VALUES (?1, ?2)", nativeQuery = true)
     void addMemberToUser(Long userId, Long memberId);
-
+                                                                              
     @Query(value = "DELETE FROM user_family_mapping WHERE user_id = ?1 AND member_id = ?2", nativeQuery = true)
     void removeMemberFromUser(Long userId, Long memberId);
 }

@@ -4,7 +4,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.domain.EntityScan;
 
-@SpringBootApplication
+@SpringBootApplication(scanBasePackages = "com.example.financeReportSystem")
 @EntityScan("com.example.financeReportSystem.model")
 public class PersonalFinancialManageApplication {
 

@@ -99,4 +99,9 @@ public class TransactionService {
         existingTransaction.setBill(updatedTransaction.getBill());
         return transactionRepository.save(existingTransaction);
     }
+
+    // 新增 saveAllTransactions 方法
+    public void saveAllTransactions(List<Transaction> transactions) {
+        transactionRepository.saveAll(transactions);
+    }
 }

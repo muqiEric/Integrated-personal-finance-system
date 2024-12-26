@@ -2,6 +2,7 @@ package com.example.financeReportSystem.repository;
 
 import com.example.financeReportSystem.model.Transaction;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -36,6 +37,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     List<Map<String, Object>> findTotalAmountGroupedByMonthAndCategory();
 
     // 批量删除交易记录
+    @Modifying
     @Query("DELETE FROM Transaction t WHERE t.id IN :ids")
-    void deleteAllByIds(@Param("ids") List<Long> ids);
+    void deleteAllByIdIn(@Param("ids") List<Long> ids);
 }
